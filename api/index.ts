@@ -15,11 +15,13 @@ async function generateTextProImage(effectUrl: string, textToRender: string): Pr
         browser = (await puppeteer.launch({
             args: chromium.args,
             executablePath: await chromium.executablePath(),
-            headless: true,
+            headless: true, // Use the boolean value to match older type definitions
         })) as unknown as Browser;
 
         const page = await browser.newPage();
         page.setDefaultTimeout(maxWaitTime);
+
+        await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 
         await page.goto(effectUrl, { waitUntil: 'networkidle2' });
         await page.type('#text-0', textToRender);
@@ -49,6 +51,11 @@ async function generateTextProImage(effectUrl: string, textToRender: string): Pr
 
     } catch (error) {
         console.error('An error occurred during TextPro image generation:', error);
+        
+        if (error instanceof Error && error.message.includes("is a peer dependency")) {
+             throw new Error("Puppeteer peer dependency issue. Ensure 'puppeteer-core' is correctly installed and bundled.");
+        }
+
         let errorMessage = 'An unknown error occurred during image generation.';
         if (error instanceof Error) {
             errorMessage = error.name === 'TimeoutError'
