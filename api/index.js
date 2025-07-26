@@ -5,6 +5,7 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const chromium = require('@sparticuz/chromium');
 
 require('puppeteer-extra-plugin-stealth/evasions/chrome.app');
+require('puppeteer-extra-plugin-stealth/evasions/chrome.csi');
 
 puppeteerExtra.use(StealthPlugin());
 
