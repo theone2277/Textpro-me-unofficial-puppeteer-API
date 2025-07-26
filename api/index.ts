@@ -23,6 +23,8 @@ async function generateTextProImage(effectUrl: string, textToRender: string): Pr
 
         await page.goto(effectUrl, { waitUntil: 'networkidle2' });
         await page.type('#text-0', textToRender);
+        
+        await page.waitForSelector('#submit', { visible: true, timeout: 10000 });
         await page.click('#submit');
 
         const resultSelector = '#result-image';
