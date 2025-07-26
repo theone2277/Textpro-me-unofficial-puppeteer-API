@@ -1,20 +1,15 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "node_modules/@sparticuz/chromium/bin/**"
-        ]
-      }
+  "functions": {
+    "api/index.ts": {
+      "runtime": "@godsreveal/vercel-bun@0.2.4",
+      "maxDuration": 45,
+      "memory": 2048
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "api/index.js"
+      "source": "/(.*)",
+      "destination": "/api/index.ts"
     }
   ]
 }
