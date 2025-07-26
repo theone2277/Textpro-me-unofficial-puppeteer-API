@@ -75,7 +75,7 @@ const app = new Elysia()
         status: 'API is running',
         endpoints: '/textpro'
     }))
-    .post('/textpro', async ({ body, set }) => {
+    .get('/textpro', async ({ body, set }) => {
         const { text, effect } = body;
 
         if (!text) {
