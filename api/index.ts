@@ -3,7 +3,7 @@ import 'puppeteer-core';
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import chromium from '@sparticuz/chromium';
-import { Browser, Protocol } from 'puppeteer-core';
+import { Browser } from 'puppeteer-core';
 
 puppeteer.use(StealthPlugin());
 
@@ -12,11 +12,11 @@ async function generateTextProImage(effectUrl: string, textToRender: string): Pr
     const maxWaitTime = 45000;
 
     try {
-        browser = await puppeteer.launch({
+        browser = (await puppeteer.launch({
             args: chromium.args,
             executablePath: await chromium.executablePath(),
-            headless: chromium.headless,
-        });
+            headless: true,
+        })) as unknown as Browser;
 
         const page = await browser.newPage();
         page.setDefaultTimeout(maxWaitTime);
@@ -24,19 +24,29 @@ async function generateTextProImage(effectUrl: string, textToRender: string): Pr
         await page.goto(effectUrl, { waitUntil: 'networkidle2' });
         await page.type('#text-0', textToRender);
         
-        await page.waitForSelector('#submit', { visible: true, timeout: 10000 });
-        await page.click('#submit');
+        const submitButtonSelector = '#create_effect';
+        await page.waitForSelector(submitButtonSelector, { visible: true, timeout: 10000 });
+        await page.click(submitButtonSelector);
 
-        const resultSelector = '#result-image';
+        const resultSelector = '#link-image';
         await page.waitForSelector(resultSelector, { visible: true, timeout: maxWaitTime });
 
-        const imageUrl = await page.$eval(`${resultSelector} img`, el => (el as HTMLImageElement).src);
+        const rawText = await page.$eval(resultSelector, el => el.textContent);
 
-        if (!imageUrl) {
-            throw new Error('Could not extract the final image source URL.');
+        if (!rawText) {
+            throw new Error('Could not find text in the result element.');
         }
 
-        return imageUrl;
+        const urlRegex = /(https?:\/\/\S+\.jpg)/;
+        const match = rawText.match(urlRegex);
+        const cleanedUrl = match ? match[0] : null;
+
+        if (!cleanedUrl) {
+            throw new Error('Could not extract a valid .jpg URL from the result text.');
+        }
+        
+        return cleanedUrl;
+
     } catch (error) {
         console.error('An error occurred during TextPro image generation:', error);
         let errorMessage = 'An unknown error occurred during image generation.';
@@ -47,59 +57,7 @@ async function generateTextProImage(effectUrl: string, textToRender: string): Pr
         }
         throw new Error(errorMessage);
     } finally {
-        if (browser !== null) {
-            await browser.close();
-        }
-    }
-}
-
-
-async function getAnimePaheCookies(): Promise<Protocol.Network.Cookie[]> {
-    let browser: Browser | null = null;
-    const siteUrl = 'https://animepahe.ru/';
-    console.log(`Starting Puppeteer for: ${siteUrl}`);
-
-    try {
-        chromium.setGraphicsMode = false;
-
-        browser = await puppeteer.launch({
-            args: chromium.args,
-            executablePath: await chromium.executablePath(),
-            headless: chromium.headless,
-        });
-
-        const page = await browser.newPage();
-
-        await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-
-        console.log('Navigating and waiting for network idle...');
-        await page.goto(siteUrl, {
-            waitUntil: 'networkidle2',
-            timeout: 30000,
-        });
-
-        console.log('Network is idle. Waiting an extra 5 seconds for JS challenges...');
-        await new Promise((r) => setTimeout(r, 5000));
-
-        console.log('Challenge should be solved. Extracting cookies...');
-        const cookies = await page.cookies();
-
-        if (cookies.length === 0) {
-            throw new Error('Failed to extract any cookies. The anti-bot page may have changed.');
-        }
-
-        console.log('Successfully extracted cookies.');
-        return cookies;
-
-    } catch (error) {
-        console.error('An error occurred during Puppeteer execution:', error);
-        if (error instanceof Error && error.message.includes("is a peer dependency")) {
-             throw new Error("Puppeteer peer dependency issue. Ensure 'puppeteer-core' is correctly installed and bundled.");
-        }
-        throw new Error('Failed to solve the anti-bot challenge or the site is down.');
-    } finally {
-        if (browser !== null) {
-            console.log('Closing browser...');
+        if (browser) {
             await browser.close();
         }
     }
@@ -108,34 +66,17 @@ async function getAnimePaheCookies(): Promise<Protocol.Network.Cookie[]> {
 const app = new Elysia()
     .get('/', () => ({
         status: 'API is running',
-        endpoints: ['/anime-cookies', '/textpro']
+        endpoints: '/textpro'
     }))
-    .get('/anime-cookies', async ({ set }) => {
-        try {
-            const cookiesArray = await getAnimePaheCookies();
-            const cookieString = cookiesArray.map(c => `${c.name}=${c.value}`).join('; ');
-
-            return {
-                message: "Successfully retrieved session cookies from Animepahe.",
-                cookies: {
-                    asArray: cookiesArray,
-                    asString: cookieString
-                }
-            };
-        } catch (e: any) {
-            set.status = 500;
-            return { error: e.message };
-        }
-    })
-    .get('/textpro', async ({ query, set }) => {
-        const { text, effect } = query;
+    .post('/textpro', async ({ body, set }) => {
+        const { text, effect } = body;
 
         if (!text) {
             set.status = 400;
-            return { error: 'Missing "text" query parameter.' };
+            return { error: 'Missing "text" in body.' };
         }
 
-        const effectUrl = effect || 'https://textpro.me/create-a-cool-liquid-text-effect-online-941.html';
+        const effectUrl = effect || 'https://textpro.me/neon-light-text-effect-online-882.html';
 
         try {
             const imageUrl = await generateTextProImage(effectUrl, text);
@@ -144,6 +85,11 @@ const app = new Elysia()
             set.status = 500;
             return { error: e.message || 'Internal Server Error' };
         }
+    }, {
+        body: t.Object({
+            text: t.String(),
+            effect: t.Optional(t.String())
+        })
     });
 
 export default app.fetch;
