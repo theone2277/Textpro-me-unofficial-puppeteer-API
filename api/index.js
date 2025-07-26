@@ -1,8 +1,10 @@
 const express = require('express');
-require('puppeteer-core'); // Ensures puppeteer-core is bundled by Vercel/serverless bundlers
+require('puppeteer-core'); 
 const puppeteerExtra = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const chromium = require('@sparticuz/chromium');
+
+require('puppeteer-extra-plugin-stealth/evasions/chrome.app');
 
 puppeteerExtra.use(StealthPlugin());
 
@@ -30,7 +32,7 @@ async function generateTextProImage(effectUrl, textToRender) {
 
         const resultSelector = '#result-image';
         await page.waitForSelector(resultSelector, { visible: true, timeout: maxWaitTime });
-        
+
         const imageUrl = await page.$eval(`${resultSelector} img`, el => el.src);
 
         if (!imageUrl) {
@@ -78,7 +80,7 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`✅ Server running at http://localhost:${port}`);
+    console.log(`✅ Server running at http:
 });
 
 module.exports = app;
