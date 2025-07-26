@@ -20,7 +20,6 @@ require('puppeteer-extra-plugin-stealth/evasions/navigator.webdriver');
 require('puppeteer-extra-plugin-stealth/evasions/sourceurl');
 require('puppeteer-extra-plugin-stealth/evasions/user-agent-override');
 require('puppeteer-extra-plugin-stealth/evasions/webgl.vendor');
-// --- END: Vercel Bundler Fix ---
 
 puppeteerExtra.use(StealthPlugin());
 
