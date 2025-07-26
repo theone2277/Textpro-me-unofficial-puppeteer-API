@@ -1,21 +1,38 @@
-const express = require('express');
-const puppeteer = require('puppeteer-core');
-const chromium = require('@sparticuz/chromium');
+import { Elysia, t } from 'elysia';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import chromium from '@sparticuz/chromium';
+import { Browser, Protocol } from 'puppeteer-core';
 
-const app = express();
-const port = process.env.PORT || 3000;
+require('puppeteer-extra-plugin-stealth/evasions/chrome.app');
+require('puppeteer-extra-plugin-stealth/evasions/chrome.csi');
+require('puppeteer-extra-plugin-stealth/evasions/chrome.loadTimes');
+require('puppeteer-extra-plugin-stealth/evasions/chrome.runtime');
+require('puppeteer-extra-plugin-stealth/evasions/defaultArgs');
+require('puppeteer-extra-plugin-stealth/evasions/iframe.contentWindow');
+require('puppeteer-extra-plugin-stealth/evasions/media.codecs');
+require('puppeteer-extra-plugin-stealth/evasions/navigator.hardwareConcurrency');
+require('puppeteer-extra-plugin-stealth/evasions/navigator.languages');
+require('puppeteer-extra-plugin-stealth/evasions/navigator.permissions');
+require('puppeteer-extra-plugin-stealth/evasions/navigator.plugins');
+require('puppeteer-extra-plugin-stealth/evasions/navigator.vendor');
+require('puppeteer-extra-plugin-stealth/evasions/navigator.webdriver');
+require('puppeteer-extra-plugin-stealth/evasions/sourceurl');
+require('puppeteer-extra-plugin-stealth/evasions/user-agent-override');
+require('puppeteer-extra-plugin-stealth/evasions/webgl.vendor');
+require('puppeteer-extra-plugin-stealth/evasions/window.outerdimensions');
 
-async function generateTextProImage(effectUrl, textToRender) {
-    let browser = null;
+puppeteer.use(StealthPlugin());
+
+async function generateTextProImage(effectUrl: string, textToRender: string): Promise<string> {
+    let browser: Browser | null = null;
     const maxWaitTime = 45000;
 
     try {
         browser = await puppeteer.launch({
             args: chromium.args,
-            defaultViewport: chromium.defaultViewport,
             executablePath: await chromium.executablePath(),
             headless: chromium.headless,
-            ignoreHTTPSErrors: true,
         });
 
         const page = await browser.newPage();
@@ -28,7 +45,7 @@ async function generateTextProImage(effectUrl, textToRender) {
         const resultSelector = '#result-image';
         await page.waitForSelector(resultSelector, { visible: true, timeout: maxWaitTime });
 
-        const imageUrl = await page.$eval(`${resultSelector} img`, el => el.src);
+        const imageUrl = await page.$eval(`${resultSelector} img`, el => (el as HTMLImageElement).src);
 
         if (!imageUrl) {
             throw new Error('Could not extract the final image source URL.');
@@ -36,15 +53,13 @@ async function generateTextProImage(effectUrl, textToRender) {
 
         return imageUrl;
     } catch (error) {
+        console.error('An error occurred during TextPro image generation:', error);
         let errorMessage = 'An unknown error occurred during image generation.';
         if (error instanceof Error) {
-            if (error.name === 'TimeoutError') {
-                errorMessage = `Operation timed out. The result did not appear within ${maxWaitTime / 1000} seconds.`;
-            } else {
-                errorMessage = error.message;
-            }
+            errorMessage = error.name === 'TimeoutError'
+                ? `Operation timed out after ${maxWaitTime / 1000} seconds.`
+                : error.message;
         }
-        console.error(errorMessage);
         throw new Error(errorMessage);
     } finally {
         if (browser !== null) {
@@ -53,29 +68,97 @@ async function generateTextProImage(effectUrl, textToRender) {
     }
 }
 
-app.get('/textpro', async (req, res) => {
-    const { text, effect } = req.query;
 
-    if (!text) {
-        return res.status(400).json({ error: 'Missing "text" query parameter.' });
-    }
-
-    const effectUrl = effect || 'https://textpro.me/create-a-cool-liquid-text-effect-online-941.html';
+async function getAnimePaheCookies(): Promise<Protocol.Network.Cookie[]> {
+    let browser: Browser | null = null;
+    const siteUrl = 'https://animepahe.ru/';
+    console.log(`Starting Puppeteer for: ${siteUrl}`);
 
     try {
-        const imageUrl = await generateTextProImage(effectUrl, text);
-        res.json({ image_url: imageUrl });
+        chromium.setGraphicsMode = false;
+
+        browser = await puppeteer.launch({
+            args: chromium.args,
+            executablePath: await chromium.executablePath(),
+            headless: chromium.headless,
+        });
+
+        const page = await browser.newPage();
+
+        await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+
+        console.log('Navigating and waiting for network idle...');
+        await page.goto(siteUrl, {
+            waitUntil: 'networkidle2',
+            timeout: 30000,
+        });
+
+        console.log('Network is idle. Waiting an extra 5 seconds for JS challenges...');
+        await new Promise((r) => setTimeout(r, 5000));
+
+        console.log('Challenge should be solved. Extracting cookies...');
+        const cookies = await page.cookies();
+
+        if (cookies.length === 0) {
+            throw new Error('Failed to extract any cookies. The anti-bot page may have changed.');
+        }
+
+        console.log('Successfully extracted cookies.');
+        return cookies;
+
     } catch (error) {
-        res.status(500).json({ error: error.message || 'Internal Server Error' });
+        console.error('An error occurred during Puppeteer execution:', error);
+        if (error instanceof Error && error.message.includes("is a peer dependency")) {
+             throw new Error("Puppeteer peer dependency issue. Ensure 'puppeteer-core' is correctly installed and bundled.");
+        }
+        throw new Error('Failed to solve the anti-bot challenge or the site is down.');
+    } finally {
+        if (browser !== null) {
+            console.log('Closing browser...');
+            await browser.close();
+        }
     }
-});
+}
 
-app.get('/', (req, res) => {
-    res.send('Welcome to the TextPro API! Use /textpro?text=YourText[&effect=URL]');
-});
+const app = new Elysia()
+    .get('/', () => ({
+        status: 'API is running',
+        endpoints: ['/anime-cookies', '/textpro']
+    }))
+    .get('/anime-cookies', async ({ set }) => {
+        try {
+            const cookiesArray = await getAnimePaheCookies();
+            const cookieString = cookiesArray.map(c => `${c.name}=${c.value}`).join('; ');
 
-app.listen(port, () => {
-    console.log(`✅ Server running at http://localhost:${port}`);
-});
+            return {
+                message: "Successfully retrieved session cookies from Animepahe.",
+                cookies: {
+                    asArray: cookiesArray,
+                    asString: cookieString
+                }
+            };
+        } catch (e: any) {
+            set.status = 500;
+            return { error: e.message };
+        }
+    })
+    .get('/textpro', async ({ query, set }) => {
+        const { text, effect } = query;
 
-module.exports = app;
+        if (!text) {
+            set.status = 400;
+            return { error: 'Missing "text" query parameter.' };
+        }
+
+        const effectUrl = effect || 'https://textpro.me/create-a-cool-liquid-text-effect-online-941.html';
+
+        try {
+            const imageUrl = await generateTextProImage(effectUrl, text);
+            return { image_url: imageUrl };
+        } catch (e: any) {
+            set.status = 500;
+            return { error: e.message || 'Internal Server Error' };
+        }
+    });
+
+export default app.fetch;
