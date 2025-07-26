@@ -4,8 +4,13 @@ const puppeteerExtra = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const chromium = require('@sparticuz/chromium');
 
-require('puppeteer-extra-plugin-stealth/evasions/chrome.app');
-require('puppeteer-extra-plugin-stealth/evasions/chrome.csi');
+const evasions = [
+    'chrome.app', 'chrome.csi', 'chrome.loadTimes', 'chrome.runtime',
+    'defaultArgs', 'iframe.contentWindow', 'media.codecs', 'navigator.hardwareConcurrency',
+    'navigator.languages', 'navigator.permissions', 'navigator.plugins', 'navigator.vendor',
+    'navigator.webdriver', 'sourceurl', 'user-agent-override', 'webgl.vendor'
+];
+evasions.forEach(evasion => require(`puppeteer-extra-plugin-stealth/evasions/${evasion}`));
 
 puppeteerExtra.use(StealthPlugin());
 
