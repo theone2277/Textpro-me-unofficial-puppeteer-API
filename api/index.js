@@ -1,5 +1,5 @@
 const express = require('express');
-require('puppeteer-core'); 
+require('puppeteer-core');
 const puppeteerExtra = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const chromium = require('@sparticuz/chromium');
@@ -80,7 +80,7 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`✅ Server running at http:
+    console.log(`✅ Server running at http://localhost:${port}`);
 });
 
 module.exports = app;
