@@ -15,7 +15,7 @@ async function generateTextProImage(effectUrl: string, textToRender: string): Pr
         browser = (await puppeteer.launch({
             args: chromium.args,
             executablePath: await chromium.executablePath(),
-            headless: true, // Use the boolean value to match older type definitions
+            headless: true,
         })) as unknown as Browser;
 
         const page = await browser.newPage();
@@ -75,12 +75,13 @@ const app = new Elysia()
         status: 'API is running',
         endpoints: '/textpro'
     }))
-    .get('/textpro', async ({ body, set }) => {
-        const { text, effect } = body;
+
+    .get('/textpro', async ({ query, set }) => { 
+        const { text, effect } = query;
 
         if (!text) {
             set.status = 400;
-            return { error: 'Missing "text" in body.' };
+            return { error: 'Missing "text" in query parameter.' };
         }
 
         const effectUrl = effect || 'https://textpro.me/neon-light-text-effect-online-882.html';
@@ -93,7 +94,7 @@ const app = new Elysia()
             return { error: e.message || 'Internal Server Error' };
         }
     }, {
-        body: t.Object({
+        query: t.Object({
             text: t.String(),
             effect: t.Optional(t.String())
         })
