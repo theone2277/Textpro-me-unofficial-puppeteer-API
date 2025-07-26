@@ -1,27 +1,6 @@
 const express = require('express');
-require('puppeteer-core');
-const puppeteerExtra = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const puppeteer = require('puppeteer-core');
 const chromium = require('@sparticuz/chromium');
-
-require('puppeteer-extra-plugin-stealth/evasions/chrome.app');
-require('puppeteer-extra-plugin-stealth/evasions/chrome.csi');
-require('puppeteer-extra-plugin-stealth/evasions/chrome.loadTimes');
-require('puppeteer-extra-plugin-stealth/evasions/chrome.runtime');
-require('puppeteer-extra-plugin-stealth/evasions/defaultArgs');
-require('puppeteer-extra-plugin-stealth/evasions/iframe.contentWindow');
-require('puppeteer-extra-plugin-stealth/evasions/media.codecs');
-require('puppeteer-extra-plugin-stealth/evasions/navigator.hardwareConcurrency');
-require('puppeteer-extra-plugin-stealth/evasions/navigator.languages');
-require('puppeteer-extra-plugin-stealth/evasions/navigator.permissions');
-require('puppeteer-extra-plugin-stealth/evasions/navigator.plugins');
-require('puppeteer-extra-plugin-stealth/evasions/navigator.vendor');
-require('puppeteer-extra-plugin-stealth/evasions/navigator.webdriver');
-require('puppeteer-extra-plugin-stealth/evasions/sourceurl');
-require('puppeteer-extra-plugin-stealth/evasions/user-agent-override');
-require('puppeteer-extra-plugin-stealth/evasions/webgl.vendor');
-
-puppeteerExtra.use(StealthPlugin());
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -31,11 +10,12 @@ async function generateTextProImage(effectUrl, textToRender) {
     const maxWaitTime = 45000;
 
     try {
-        browser = await puppeteerExtra.launch({
+        browser = await puppeteer.launch({
             args: chromium.args,
             defaultViewport: chromium.defaultViewport,
             executablePath: await chromium.executablePath(),
             headless: chromium.headless,
+            ignoreHTTPSErrors: true,
         });
 
         const page = await browser.newPage();
