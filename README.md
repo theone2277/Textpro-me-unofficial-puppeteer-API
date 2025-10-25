@@ -44,3 +44,22 @@ curl "https://<YOUR_DEPLOYMENT>.vercel.app/textpro?text=Hello%20World&effect=htt
 MIT
 
 ---
+
+**Query parameters**
+
+* `text` (required) — Text to render.
+* `effect` (optional) — Full TextPro effect page URL. Defaults to the neon example.
+
+**Example**
+
+```bash
+curl "https://<YOUR_DEPLOYMENT>.vercel.app/textpro?text=Hello%20World&effect=https://textpro.me/neon-light-text-effect-online-882.html"
+```
+
+---
+
+## License
+
+MIT
+
+---
