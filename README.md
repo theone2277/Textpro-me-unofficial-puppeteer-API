@@ -2,7 +2,7 @@
 
 A **TextPro.me scraper** written in **TypeScript**, powered by **Bun**, and deployed to **Vercel**.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/theone2277/textpro-me-scraper&env=BUN_VERSION=latest&build-command=bun%20i)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/theone2277/Textpro-me-unofficial-puppeteer-API&env=BUN_VERSION=latest&build-command=bun%20i)
 
 > This deploy link sets `BUN_VERSION=latest` during deployment and runs `bun i` as the install step.
 
