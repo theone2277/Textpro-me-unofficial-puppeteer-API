@@ -8,13 +8,6 @@ A **TextPro.me scraper** written in **TypeScript**, powered by **Bun**, and depl
 
 ---
 
-## Features
-
-* TypeScript(Bun) + Elysia
-* Simple `/textpro` endpoint that returns a generated `.jpg` image URL
-
----
-
 ## Endpoints
 
 ### `GET /`
